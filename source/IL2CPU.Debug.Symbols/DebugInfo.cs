@@ -1,14 +1,15 @@
-﻿using Dapper;
-using DapperExtensions;
-using DapperExtensions.Mapper;
-using DapperExtensions.Sql;
-using Microsoft.Data.Sqlite;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Data.Sqlite;
+
+using Dapper;
+using DapperExtensions;
+using DapperExtensions.Mapper;
+using DapperExtensions.Sql;
 
 namespace Cosmos.Debug.Symbols
 {
@@ -360,26 +361,28 @@ namespace Cosmos.Debug.Symbols
             return xSeqPoints.ToArray();
         }
 
-        protected List<Method> mMethods = new List<Method>();
         public void AddMethod(Method aMethod, bool aFlush = false)
         {
+            var xMethods = new List<Method>();
+
             if (aMethod != null)
             {
-                mMethods.Add(aMethod);
+                xMethods.Add(aMethod);
             }
-            BulkInsert("Methods", mMethods, 2500, aFlush);
+
+            BulkInsert("Methods", xMethods, 2500, aFlush);
         }
 
         // Quick look up of assemblies so we dont have to go to the database and compare by fullname.
         // This and other GUID lists contain only a few members, and save us from issuing a lot of selects to SQL.
         public Dictionary<Assembly, long> AssemblyGUIDs = new Dictionary<Assembly, long>();
-        List<AssemblyFile> xAssemblies = new List<AssemblyFile>();
 
         public void AddAssemblies(List<Assembly> aAssemblies, bool aFlush = false)
         {
+            var xAssemblies = new List<AssemblyFile>();
+
             if (aAssemblies != null)
             {
-
                 foreach (var xAsm in aAssemblies)
                 {
                     var xRow = new AssemblyFile()
@@ -387,18 +390,21 @@ namespace Cosmos.Debug.Symbols
                         ID = CreateId(),
                         Pathname = xAsm.Location
                     };
-                    xAssemblies.Add(xRow);
 
+                    xAssemblies.Add(xRow);
                     AssemblyGUIDs.Add(xAsm, xRow.ID);
                 }
             }
+
             BulkInsert("AssemblyFiles", xAssemblies, 2500, aFlush);
         }
 
         public Dictionary<string, long> DocumentGUIDs = new Dictionary<string, long>();
-        List<Document> xDocuments = new List<Document>(1);
+
         public void AddDocument(string aPathname, bool aFlush = false)
         {
+            var xDocuments = new List<Document>(1);
+
             if (aPathname != null)
             {
                 aPathname = aPathname.ToLower();
@@ -415,13 +421,9 @@ namespace Cosmos.Debug.Symbols
                     // open so its probably faster than using EF, and its about the same amount of code.
                     // Need to insert right away so RI will be ok when dependents are inserted.
                     xDocuments.Add(xRow);
-                    BulkInsert("Documents", xDocuments, 2500, aFlush);
                 }
             }
-            else
-            {
-                BulkInsert("Documents", xDocuments, 2500, aFlush);
-            }
+            BulkInsert("Documents", xDocuments, 2500, aFlush);
         }
 
         public void AddSymbols(IList<MethodIlOp> aSymbols, bool aFlush = false)
@@ -457,9 +459,8 @@ namespace Cosmos.Debug.Symbols
             {
                 if (aList.Count > 0)
                 {
-                    using (var xBulkCopy = new SqliteBulkCopy(mConnection))
+                    using (var xBulkCopy = new SqliteBulkCopy(mConnection, aTableName))
                     {
-                        xBulkCopy.DestinationTableName = aTableName;
                         #region debug
                         // for now dump to disk:
                         //using (var reader = new ObjectReader<T>(aList.ToArray()))
@@ -836,5 +837,4 @@ namespace Cosmos.Debug.Symbols
             return mLastGuid;
         }
     }
-
 }

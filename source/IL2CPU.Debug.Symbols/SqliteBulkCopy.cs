@@ -19,20 +19,19 @@ namespace Cosmos.Debug.Symbols
         }
 
         private readonly SqliteConnection mConnection;
+        private string mDestinationTableName;
 
-        public SqliteBulkCopy(SqliteConnection connection)
+        public SqliteBulkCopy(SqliteConnection connection, string aDestinationTableName)
         {
             mConnection = connection;
+            mDestinationTableName = aDestinationTableName;
         }
-
-        public string DestinationTableName { get; set; }
 
         public void WriteToServer(IDataReader reader)
         {
             if (reader.Read())
             {
                 // initialize bulk copy
-
                 using (var trans = mConnection.BeginTransaction())
                 {
                     using (var command = mConnection.CreateCommand())
@@ -52,7 +51,7 @@ namespace Cosmos.Debug.Symbols
                         paramNames = paramNames.TrimEnd(',');
 
                         command.Transaction = trans;
-                        command.CommandText = $"insert into [{DestinationTableName}] ({fieldNames}) values ({paramNames})";
+                        command.CommandText = $"insert into [{mDestinationTableName}] ({fieldNames}) values ({paramNames})";
                         command.Prepare();
                         do
                         {
